@@ -16,6 +16,17 @@ jobs:
     environment: production
 
     steps:
+      - name: Debug OIDC claims
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token = await core.getIDToken('sts.amazonaws.com');
+            const claims = JSON.parse(
+              Buffer.from(token.split('.')[1], 'base64url').toString()
+            );
+            core.info(`OIDC subject: ${claims.sub}`);
+            core.info(`OIDC audience: ${JSON.stringify(claims.aud)}`);
+
       - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -27,6 +38,7 @@ jobs:
 
       - name: Create harmless test artifact
         run: |
+          set -eu
           mkdir test-release
           echo "SSM S3 connectivity test" > test-release/test.txt
           tar -czf release.tar.gz -C test-release .
